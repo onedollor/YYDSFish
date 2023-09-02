@@ -86,42 +86,6 @@ class Deck:
         return pop
 
 
-def print_hi(name):
-    import time
-    start_time = time.time()
-
-    # Use a breakpoint in the code line below to debug your script.
-    new_deck = Deck()
-
-    for t in range(1, 2):
-        new_deck.shuffle()
-        hands = new_deck.pop(8)
-        print(hands.to_string())
-
-    print("--- %s seconds ---" % (time.time() - start_time))
-
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-def print_rank():
-    rank = []
-
-    CARDS = ['A(S)', '2(S)', '3(S)', '4(S)', '5(S)', '6(S)', '7(S)', '8(S)', '9(S)', '10(S)', 'J(S)', 'Q(S)', 'K(S)',
-             'A(H)', '2(H)', '3(H)', '4(H)', '5(H)', '6(H)', '7(H)', '8(H)', '9(H)', '10(H)', 'J(H)', 'Q(H)', 'K(H)',
-             'A(C)', '2(C)', '3(C)', '4(C)', '5(C)', '6(C)', '7(C)', '8(C)', '9(C)', '10(C)', 'J(C)', 'Q(C)', 'K(C)',
-             'A(D)', '2(D)', '3(D)', '4(D)', '5(D)', '6(D)', '7(D)', '8(D)', '9(D)', '10(D)', 'J(D)', 'Q(D)', 'K(D)', ]
-
-    for i in range(0, 13):
-        rank.append()
-
-           # [CARDS[12+13*0], CARDS[11+13*0], CARDS[10+13*0], CARDS[9+13*0], CARDS[0+13*0]]
-           # [CARDS[12+13*1], CARDS[11+13*1], CARDS[10+13*1], CARDS[9+13*1], CARDS[0+13*1]]
-           # [CARDS[12+13*2], CARDS[11+13*2], CARDS[10+13*2], CARDS[9+13*2], CARDS[0+13*2]]
-           # [CARDS[12+13*3], CARDS[11+13*3], CARDS[10+13*3], CARDS[9+13*3], CARDS[0+13*3]]
-
-        print(i)
-
-
 def straight_flush(rank, rank_index):
     for x in range(0, 13):
         if x <= 9:
@@ -338,21 +302,31 @@ def combinations():
     two_pair(rank, rank_index)
     one_pair(rank, rank_index)
     high_card(rank, rank_index)
-    print(rank)
+    #print(rank)
+
+
+def random_hands(num_of_players):
+    import time
+    start_time = time.time()
+
+    # Use a breakpoint in the code line below to debug your script.
+    new_deck = Deck()
+
+    for t in range(1, 2):
+        new_deck.shuffle()
+        hands = new_deck.pop(num_of_players)
+        print(hands.to_string())
+
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    #print_hi('PyCharm')
+    random_hands(8)
     #print_rank()
 
-    combinations()
-    for c in range(0, 4):
-        print(0+13*(1 if c > 2 else 0), 0+13*(2 if c > 1 else 1), 0+13*(3 if c > 0 else 2))
-        # rank[rank_index].append([x, x+13, x+13*2, y, y+13])
-        # rank[rank_index].append([x, x+13, x+13*3, y, y+13])
-        # rank[rank_index].append([x, x+13*2, x+13*3, y, y+13])
-        # rank[rank_index].append([x+13, x+13*2, x+13*3, y, y+13])
+    #combinations()
+
 
 
 
