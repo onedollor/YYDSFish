@@ -1,4 +1,5 @@
 import numpy as np
+import pyodbc
 
 
 class Deck:
@@ -30,6 +31,24 @@ class Deck:
             [CARDS[0+13*2], CARDS[12+13*2], CARDS[11+13*2], CARDS[10+13*2], CARDS[9+13*2]],
             [CARDS[0+13*3], CARDS[12+13*3], CARDS[11+13*3], CARDS[10+13*3], CARDS[9+13*3]]]
     }
+
+    def write_to_db():
+        conn = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
+                              "Server=LIN9400F\SQL2ETL;"
+                              "Database=Poker;"
+                              "Trusted_Connection=yes;")
+
+        cursor = conn.cursor()
+        cursor.execute('TRUNCATE TABLE [dbo].[T_Card]')
+
+        for cid, c in enumerate(Deck.CARDS):
+            cursor.execute(
+                "INSERT INTO [dbo].[T_Card] ([CID],[STR]) VALUES ({},'{}') \
+                         ".format(cid, c)
+            )
+
+        cursor.commit()
+        conn.close()
 
     class Pop:
         def __init__(self, deck, number_of_players):
@@ -66,7 +85,6 @@ class Deck:
         def get_winner_rank(self):
             pass
 
-
     def __init__(self):
         self.cards = np.arange(52)
         self.shuffled_deck = None
@@ -78,12 +96,13 @@ class Deck:
         return self
 
     def pop(self, number_of_players):
-        pop = self.Pop(self.shuffled_deck, number_of_players)
+        import copy
+        _pop = self.Pop(self.shuffled_deck, number_of_players)
         # print(pop.players)
         # print(pop.flop)
         # print(pop.turn)
         # print(pop.river)
-        return pop
+        return copy.deepcopy(_pop)
 
 
 def straight_flush(rank, rank_index):
@@ -98,6 +117,7 @@ def straight_flush(rank, rank_index):
                 rank['total'] = rank['total'] + 1
 
             rank_index = rank_index - 1
+    return rank, rank_index
 
 
 def four_of_a_kind(rank, rank_index):
@@ -113,6 +133,7 @@ def four_of_a_kind(rank, rank_index):
                     rank['total'] = rank['total'] + 1
 
                 rank_index = rank_index - 1
+    return rank, rank_index
 
 
 def full_house(rank, rank_index):
@@ -134,6 +155,7 @@ def full_house(rank, rank_index):
                                                  rank_index])
                         rank['total'] = rank['total'] + 1
                 rank_index = rank_index - 1
+    return rank, rank_index
 
 
 def flush(rank, rank_index):
@@ -155,6 +177,7 @@ def flush(rank, rank_index):
                                                              f'{Deck.CARDS[(c*13)+x4]}]', rank_index])
                                     rank['total'] = rank['total'] + 1
                                 rank_index = rank_index - 1
+    return rank, rank_index
 
 
 def straight(rank, rank_index):
@@ -181,6 +204,7 @@ def straight(rank, rank_index):
                                     rank['total'] = rank['total'] + 1
 
             rank_index = rank_index - 1
+    return rank, rank_index
 
 
 def three_of_a_kind(rank, rank_index):
@@ -205,6 +229,7 @@ def three_of_a_kind(rank, rank_index):
                                                              rank_index])
                                     rank['total'] = rank['total'] + 1
                         rank_index = rank_index - 1
+    return rank, rank_index
 
 
 def two_pair(rank, rank_index):
@@ -232,6 +257,7 @@ def two_pair(rank, rank_index):
                                                                              rank_index])
                                                     rank['total'] = rank['total'] + 1
                         rank_index = rank_index - 1
+    return rank, rank_index
 
 
 def one_pair(rank, rank_index):
@@ -258,6 +284,7 @@ def one_pair(rank, rank_index):
                                                                          rank_index])
                                                 rank['total'] = rank['total'] + 1
                         rank_index = rank_index - 1
+    return rank, rank_index
 
 
 def high_card(rank, rank_index):
@@ -279,7 +306,7 @@ def high_card(rank, rank_index):
                                                     rank[rank_index].append([x1+13*cx1, x2+13*cx2,
                                                                              x3+13*cx3, x4+13*cx4,
                                                                              x5+13*cx5,
-                                                                             f'One Pair[{Deck.CARDS[x1+13*cx1]}, '
+                                                                             f'High Card[{Deck.CARDS[x1+13*cx1]}, '
                                                                              f'{Deck.CARDS[x2+13*cx2]}, '
                                                                              f'{Deck.CARDS[x3+13*cx3]},'
                                                                              f'{Deck.CARDS[x4+13*cx4]}, '
@@ -287,45 +314,122 @@ def high_card(rank, rank_index):
                                                                              rank_index])
                                                     rank['total'] = rank['total'] + 1
                             rank_index = rank_index - 1
+    return rank, rank_index
 
 
 def combinations():
+    #https://zh.wikipedia.org/zh-cn/%E6%92%B2%E5%85%8B%E7%89%8C%E5%9E%8B
     rank = {'total': 0}
-    rank_index = 999999
+    rank_index = 10000000
 
-    straight_flush(rank, rank_index)
-    four_of_a_kind(rank, rank_index)
-    full_house(rank, rank_index)
-    flush(rank, rank_index)
-    straight(rank, rank_index)
-    three_of_a_kind(rank, rank_index)
-    two_pair(rank, rank_index)
-    one_pair(rank, rank_index)
-    high_card(rank, rank_index)
+    rank, rank_index = straight_flush(rank, rank_index)
+    rank, rank_index = four_of_a_kind(rank, rank_index)
+    rank, rank_index = full_house(rank, rank_index)
+    rank, rank_index = flush(rank, rank_index)
+    rank, rank_index = straight(rank, rank_index)
+    rank, rank_index = three_of_a_kind(rank, rank_index)
+    rank, rank_index = two_pair(rank, rank_index)
+    rank, rank_index = one_pair(rank, rank_index)
+    rank, rank_index = high_card(rank, rank_index)
+    write_rank_to_db(rank)
     #print(rank)
 
 
-def random_hands(num_of_players):
-    import time
-    start_time = time.time()
-
+def random_hands(num_of_players, num_of_hands):
     # Use a breakpoint in the code line below to debug your script.
     new_deck = Deck()
+    generated_hands = []
 
-    for t in range(1, 2):
+    for t in range(0, num_of_hands):
         new_deck.shuffle()
-        hands = new_deck.pop(num_of_players)
-        print(hands.to_string())
+        hand = new_deck.pop(num_of_players)
+        #print(hand.to_string())
+        generated_hands.append(hand)
 
-    print("--- %s seconds ---" % (time.time() - start_time))
+    return generated_hands
+
+
+def write_rank_to_db(rank):
+    conn = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
+                          "Server=LIN9400F\SQL2ETL;"
+                          "Database=Poker;"
+                          "Trusted_Connection=yes;")
+
+    cursor = conn.cursor()
+    cursor.execute('TRUNCATE TABLE [dbo].[T_CRank]')
+
+    for k in rank.keys():
+        if k == 'total':
+            continue
+
+        combs = rank[k]
+
+        for c in combs:
+            # print(c)
+            # print("INSERT INTO [dbo].[T_CRank] ([C1],[C2],[C3],[C4],[C5],[R],[STR]) VALUES ({},{},{},{},{},{},'{}') \
+            #              ".format(c[0], c[1], c[2], c[3], c[4], c[6], c[5]))
+            cursor.execute(
+                "INSERT INTO [dbo].[T_CRank] ([C1],[C2],[C3],[C4],[C5],[R],[STR]) VALUES ({},{},{},{},{},{},'{}') \
+                         ".format(c[0], c[1], c[2], c[3], c[4], c[6], c[5])
+            )
+
+    cursor.commit()
+    conn.close()
+
+
+def write_hand_to_db(hands):
+    conn = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
+                          "Server=LIN9400F\SQL2ETL;"
+                          "Database=Poker;"
+                          "Trusted_Connection=yes;")
+
+    cursor = conn.cursor()
+    #cursor.execute('TRUNCATE TABLE [dbo].[T_RHand]')
+
+    for h in hands:
+        str_insert_stmt = "INSERT INTO [dbo].[T_RHand] ([Player_Count], [P1_C1], [P1_C2]"
+
+        players_count = len(h.players)
+        if players_count < 2:
+            continue
+        else:
+            for pc in range(2, players_count + 1):
+                str_insert_stmt = str_insert_stmt + ',[P{}_C1], [P{}_C2]'.format(pc, pc)
+            str_insert_stmt = str_insert_stmt + ',[Flop_B], [Flop_C1], [Flop_C2], [Flop_C3], [Turn_B], [Turn_C1], [River_B], [River_C1], [STR])'
+            str_insert_stmt = str_insert_stmt + ' VALUES ({},{},{},{},{}'.format(players_count, h.players[0][0], h.players[0][1], h.players[1][0], h.players[1][1])
+
+            for pc in range(2, players_count):
+                str_insert_stmt = str_insert_stmt + ',{},{}'.format(h.players[pc][0], h.players[pc][1])
+            str_insert_stmt = str_insert_stmt + \
+                              ",{}, {}, {}, {}, {}, {}, {}, {}, '{}')"\
+                                  .format(h.flop[0], h.flop[1], h.flop[2], h.flop[3], h.turn[0], h.turn[1], h.river[0], h.river[1], h.to_string())
+            #print(str_insert_stmt)
+            cursor.execute(str_insert_stmt)
+
+    cursor.commit()
+    conn.close()
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    random_hands(8)
+    import time
+    start_time = time.time()
+
+    #Deck.write_to_db()
+    #combinations()
+
+    #random_hands(8, 10000000)
+
+    for _x in range(0, 10):
+        _hands = random_hands(8, 1000000)
+        write_hand_to_db(_hands)
+        print("--- %s seconds ---" % (time.time() - start_time))
+
+    print("--- %s seconds ---" % (time.time() - start_time))
     #print_rank()
 
-    #combinations()
+
+
 
 
 
