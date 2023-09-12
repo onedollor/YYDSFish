@@ -377,19 +377,18 @@ def write_rank_to_db(rank):
     conn.close()
 
 
-def write_hand_to_db(hands):
+def write_hand_to_db(hands, players_count):
     conn = pyodbc.connect("Driver={SQL Server Native Client 11.0};"
                           "Server=LIN9400F\SQL2ETL;"
                           "Database=Poker;"
                           "Trusted_Connection=yes;")
 
     cursor = conn.cursor()
-    #cursor.execute('TRUNCATE TABLE [dbo].[T_RHand]')
+    #cursor.execute('TRUNCATE TABLE [dbo].[T_RHand_{}MAX]'.format(players_count))
 
     for h in hands:
-        str_insert_stmt = "INSERT INTO [dbo].[T_RHand] ([Player_Count], [P1_C1], [P1_C2]"
+        str_insert_stmt = "INSERT INTO [dbo].[T_RHand_{}MAX] ([Player_Count], [P1_C1], [P1_C2]".format(players_count)
 
-        players_count = len(h.players)
         if players_count < 2:
             continue
         else:
@@ -420,9 +419,10 @@ if __name__ == '__main__':
 
     #random_hands(8, 10000000)
 
-    for _x in range(0, 10):
-        _hands = random_hands(8, 1000000)
-        write_hand_to_db(_hands)
+    pc = 4
+    for _x in range(0, 1):
+        _hands = random_hands(pc, 1000000)
+        write_hand_to_db(_hands, pc)
         print("--- %s seconds ---" % (time.time() - start_time))
 
     print("--- %s seconds ---" % (time.time() - start_time))

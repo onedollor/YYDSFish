@@ -40,4 +40,3 @@ CREATE TABLE [dbo].[T_RHand](
 GO
 
 
-
