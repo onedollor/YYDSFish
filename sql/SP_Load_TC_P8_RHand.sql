@@ -8,8 +8,39 @@ CREATE PROCEDURE dbo.SP_Load_TC_P8_RHand
 (@P_Thread_id int)
 AS
 BEGIN
+	DECLARE @V_MSG VARCHAR(4000)
+	;
+
 	IF @P_Thread_id NOT IN (0,1,2)
+	BEGIN
+		SET @P_Thread_id = 0
+	END
+
+BUILD_HANDID_CACHE:
+	SET NOCOUNT ON;
+
+	DROP TABLE IF EXISTS #tmp_TC_HandID
+	;
+
+    SELECT TOP 1000000
+	       S.[HandID]
+	  INTO #tmp_TC_HandID
+	  FROM [dbo].[T_RHand_8MAX] S
+	  LEFT OUTER JOIN [dbo].[TC_P8_RHand] T
+	    ON S.[HandID] = T.[HandID]
+	 WHERE 1=1
+	   AND T.[HandID] IS NULL
+	   AND (@P_Thread_id =0 OR S.[HandID] % 2 = (@P_Thread_id - 1))
+	;
+
+	SET @V_MSG = (SELECT '#tmp_TC_HandID COUNT(*) = '+CAST(COUNT(*) AS VARCHAR(32)) FROM #tmp_TC_HandID)
+	RAISERROR (@V_MSG, 0, 1) WITH NOWAIT
+	;
+
+	IF (SELECT COUNT(*) FROM #tmp_TC_HandID) =0
+	BEGIN
 		RETURN
+	END
 
 	DROP TABLE IF EXISTS #tmp_TC_P8_RHand
 	;
@@ -100,6 +131,8 @@ BEGIN
 
 	WHILE @V_Insert_Count > 0 OR @V_Total_Insert_Count = 0
 	BEGIN
+		SET NOCOUNT OFF;
+
 	    INSERT INTO #tmp_TC_P8_RHand
 				   ([HandID]
 				   ,[P1_C1_STR]
@@ -177,7 +210,7 @@ BEGIN
 				   ,[P6_R_RK]
 				   ,[P7_R_RK]
 				   ,[P8_R_RK])
-		  SELECT TOP 100
+		  SELECT TOP 1000
 				 [HandID]
 				,[P1_C1_STR]
 				,[P1_C2_STR]
@@ -257,12 +290,25 @@ BEGIN
 		  FROM [dbo].[vw_P8]
 		 WHERE 1=1
 		   AND (@P_Thread_id =0 OR [HandID] % 2 = (@P_Thread_id - 1))
-		   AND [HandID] NOT IN (SELECT [HandID] FROM [dbo].[TC_P8_RHand])
+		   --AND [HandID] NOT IN (SELECT [HandID] FROM [dbo].[TC_P8_RHand])
+		   AND [HandID] IN (SELECT [HandID] FROM #tmp_TC_HandID)
 		   AND [HandID] NOT IN (SELECT [HandID] FROM #tmp_TC_P8_RHand)
 		 ;
 
 		 SET @V_Insert_Count = @@ROWCOUNT
 		 SET @V_Total_Insert_Count = @V_Total_Insert_Count + @V_Insert_Count
+
+		 SET @V_MSG = '@V_Insert_Count = '+CAST(@V_Insert_Count AS VARCHAR(32)) + '| @V_Total_Insert_Count = ' + CAST(@V_Total_Insert_Count AS VARCHAR(32))
+		 RAISERROR (@V_MSG, 0, 1) WITH NOWAIT
+		 ;
+
+		 SET NOCOUNT ON;
+
+		 DELETE
+		   FROM #tmp_TC_HandID
+		  WHERE [HandID] IN (SELECT [HandID] FROM #tmp_TC_P8_RHand)
+		 ;
+
 
 		 IF @V_Insert_Count>0
 		 BEGIN
@@ -428,7 +474,9 @@ BEGIN
 			 ;
 		 END
 
-		 PRINT(@V_Insert_Count)
+		 SET NOCOUNT OFF;
 	END
+
+	GOTO BUILD_HANDID_CACHE
 END
 GO

@@ -419,8 +419,8 @@ if __name__ == '__main__':
 
     #random_hands(8, 10000000)
 
-    pc = 4
-    for _x in range(0, 1):
+    pc = 6
+    for _x in range(0, 5):
         _hands = random_hands(pc, 1000000)
         write_hand_to_db(_hands, pc)
         print("--- %s seconds ---" % (time.time() - start_time))
